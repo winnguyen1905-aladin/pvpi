@@ -1,0 +1,16 @@
+# Regenerable build artifacts (recreate with `npm run zk:build`)
+build/
+ptau/
+
+# Downloaded circom binary (re-download from github releases)
+bin/
+
+# Sample proofs / inputs (recreate with `npm run zk:demo`)
+proofs/
+inputs/
+
+# KEEP (committed, reusable deliverable):
+#   keys/*.zkey        proving keys
+#   keys/*.vkey.json   verification keys
+#   keys/*.verifier.sol on-chain verifiers
+!keys/

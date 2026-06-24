@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PVPI on SFAIX: Immutable Audit Logs</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- icon sprite -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="ic-broadcast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.4"/><path d="M7 7a7 7 0 0 0 0 10M17 7a7 7 0 0 1 0 10M4.5 4.5a11 11 0 0 0 0 15M19.5 4.5a11 11 0 0 1 0 15"/></symbol>
+    <symbol id="ic-plus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+    <symbol id="ic-reply" viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M4 12h11a5 5 0 0 1 5 5v1"/></symbol>
+    <symbol id="ic-avg" viewBox="0 0 24 24"><path d="M12 3v3M5 6h14M7 6 4 13a3 3 0 0 0 6 0L7 6M17 6l-3 7a3 3 0 0 0 6 0l-3-7M9 21h6"/></symbol>
+    <symbol id="ic-seal" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="ic-key" viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"/><path d="M11 11l9 9M17 17l2-2M14 14l2-2"/></symbol>
+    <symbol id="ic-print" viewBox="0 0 24 24"><path d="M12 4a8 8 0 0 1 8 8M12 8a4 4 0 0 1 4 4v2M8 12a4 4 0 0 1 8 0v3M12 12v6M6 12a6 6 0 0 1 6-6"/></symbol>
+    <symbol id="ic-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="ic-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 6 0l2-2a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-2 2a4 4 0 0 0 6 6l1-1"/></symbol>
+    <symbol id="ic-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+    <symbol id="ic-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5M3 17l9 5 9-5"/></symbol>
+    <symbol id="ic-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="ic-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="ic-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20a6 6 0 0 1 12 0M14 20a5 5 0 0 1 7-4.5"/></symbol>
+  </svg>
+
+  <!-- nav -->
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top"><span class="brand-mark">⛓</span> PVPI <span class="brand-on">on</span> SFAIX</a>
+      <nav class="nav-links">
+        <a href="#arch">How it works</a>
+        <a href="#emit">Emit</a>
+        <a href="#store">Store</a>
+        <a href="#view">View</a>
+        <a href="#immutable">Trust</a>
+        <a href="#resources">Cost</a>
+        <a class="nav-cta" href="#sim">Live demo</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- hero -->
+  <section id="top" class="hero reveal">
+    <p class="eyebrow">D1 - Stage 1 | base prototype</p>
+    <h1>PVPI <span class="on">on</span> SFAIX</h1>
+    <p class="tagline">Immutable audit logs.</p>
+    <p class="lede">
+      Three participants, a coordinator <b class="pa">A</b> and two collaborators <b class="pb">B</b> and
+      <b class="pc">C</b>, train together. Every action is <b>written down and signed</b>, the records of each
+      round are <b>bundled and sealed</b>, and the seal is posted to a public ledger. The result: a complete,
+      tamper-evident record of <em>who did what, and when</em>, without anyone being able to quietly change it.
+    </p>
+    <div class="hero-q">
+      <a class="qcard" href="#emit"><span>01</span><h3>How are logs created?</h3></a>
+      <a class="qcard" href="#store"><span>02</span><h3>How are they stored?</h3></a>
+      <a class="qcard" href="#view"><span>03</span><h3>How are they viewed?</h3></a>
+      <a class="qcard" href="#immutable"><span>04</span><h3>Why can't they be faked?</h3></a>
+      <a class="qcard" href="#resources"><span>05</span><h3>What does it cost?</h3></a>
+    </div>
+  </section>
+
+  <!-- architecture: animated, controlled round -->
+  <section id="arch" class="band reveal">
+    <h2 class="section-title">How one round works</h2>
+    <p class="section-sub">The base problem, kept deliberately simple. Three fixed parties want a shared result,
+      but none will share private data: A holds <b>x</b>, B holds a secret <b>y</b>, C holds a secret <b>z</b>.
+      Each round, B and C reveal only a <em>computed</em> value, never the secret, and the averaged result
+      feeds the next round. Press <b>Play</b> to watch one round, or step through it.</p>
+
+    <div class="archfig-wrap">
+      <svg id="archfig" class="archfig" viewBox="0 0 720 430" aria-hidden="true">
+        <defs>
+          <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M1,1 L8,4.5 L1,8 z" fill="#6b7280"/>
+          </marker>
+        </defs>
+
+        <!-- edges -->
+        <path id="e-ab" class="arch-edge solid" data-steps="1" marker-end="url(#ah)" d="M322,92 Q185,150 138,248"/>
+        <path id="e-ac" class="arch-edge solid" data-steps="1" marker-end="url(#ah)" d="M398,92 Q535,150 582,248"/>
+        <path id="e-ba" class="arch-edge dashed" data-steps="3" marker-end="url(#ah)" d="M118,250 Q270,170 344,96"/>
+        <path id="e-ca" class="arch-edge dashed" data-steps="3" marker-end="url(#ah)" d="M602,250 Q450,170 376,96"/>
+        <path id="e-loop" class="arch-edge solid" data-steps="4" marker-end="url(#ah)" d="M334,40 C300,3 420,3 386,40"/>
+        <path id="e-off" class="arch-edge solid" data-steps="5" marker-end="url(#ah)" d="M348,94 Q298,235 298,356"/>
+        <path id="e-on" class="arch-edge solid" data-steps="6" marker-end="url(#ah)" d="M372,94 Q450,235 462,356"/>
+
+        <!-- nodes -->
+        <g class="arch-node a" data-steps="1 3 4 5 6">
+          <rect x="290" y="40" width="140" height="54" rx="10"/>
+          <text x="360" y="64">A | coordinator</text>
+          <text x="360" y="81" class="sub">holds x</text>
+        </g>
+        <g class="arch-node b" data-steps="1 2 3">
+          <rect x="30" y="250" width="140" height="54" rx="10"/>
+          <text x="100" y="274">B | collaborator</text>
+          <text x="100" y="291" class="sub">secret y</text>
+        </g>
+        <g class="arch-node c" data-steps="1 2 3">
+          <rect x="550" y="250" width="140" height="54" rx="10"/>
+          <text x="620" y="274">C | collaborator</text>
+          <text x="620" y="291" class="sub">secret z</text>
+        </g>
+        <g class="arch-node off" data-steps="5">
+          <rect x="232" y="356" width="120" height="48" rx="10"/>
+          <text x="292" y="378">Off-chain</text>
+          <text x="292" y="394" class="sub">record store</text>
+        </g>
+        <g class="arch-node on" data-steps="6">
+          <rect x="402" y="356" width="120" height="48" rx="10"/>
+          <text x="462" y="378">Public ledger</text>
+          <text x="462" y="394" class="sub">the seal</text>
+        </g>
+
+        <!-- equations -->
+        <text class="arch-eq" data-steps="1" x="208" y="135">x</text>
+        <text class="arch-eq" data-steps="1" x="532" y="135">x</text>
+        <text class="arch-eq" data-steps="2 3 4" x="100" y="332">x' = x + y</text>
+        <text class="arch-eq" data-steps="2 3 4" x="620" y="332">x'' = x + z</text>
+        <text class="arch-eq" data-steps="4" x="468" y="20">x_new = (x' + x'') / 2</text>
+
+        <!-- step badges -->
+        <g class="arch-badge" data-steps="1"><circle cx="218" cy="150" r="12"/><text x="218" y="154">1</text></g>
+        <g class="arch-badge" data-steps="1"><circle cx="522" cy="150" r="12"/><text x="522" y="154">1</text></g>
+        <g class="arch-badge" data-steps="2"><circle cx="18" cy="276" r="12"/><text x="18" y="280">2</text></g>
+        <g class="arch-badge" data-steps="2"><circle cx="702" cy="276" r="12"/><text x="702" y="280">2</text></g>
+        <g class="arch-badge" data-steps="3"><circle cx="252" cy="158" r="12"/><text x="252" y="162">3</text></g>
+        <g class="arch-badge" data-steps="3"><circle cx="488" cy="158" r="12"/><text x="488" y="162">3</text></g>
+        <g class="arch-badge" data-steps="4"><circle cx="300" cy="22" r="12"/><text x="300" y="26">4</text></g>
+        <g class="arch-badge" data-steps="5"><circle cx="296" cy="300" r="12"/><text x="296" y="304">5</text></g>
+        <g class="arch-badge" data-steps="6"><circle cx="468" cy="300" r="12"/><text x="468" y="304">6</text></g>
+      </svg>
+
+      <div class="arch-controls">
+        <button id="arch-prev" class="btn ghost">‹ Prev</button>
+        <button id="arch-play" class="btn primary">▶ Play</button>
+        <button id="arch-next" class="btn ghost">Next ›</button>
+        <button id="arch-replay" class="btn ghost">↻ Replay</button>
+        <span id="arch-stepnum" class="arch-stepnum" aria-live="polite">Step 1 / 6</span>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="fstep pa" data-step="1">
+        <div class="fnum">1</div><svg class="fic"><use href="#ic-broadcast"/></svg>
+        <h4>A shares a number</h4>
+        <p>The coordinator A sends the current model value <b>x</b> to both collaborators.</p>
+      </div>
+      <svg class="farrow"><use href="#ic-arrow"/></svg>
+      <div class="fstep pb" data-step="2">
+        <div class="fnum">2</div><svg class="fic"><use href="#ic-plus"/></svg>
+        <h4>B &amp; C compute privately</h4>
+        <p>Each adds its own secret value: B makes <b>x + y</b>, C makes <b>x + z</b>. The secrets never leave.</p>
+      </div>
+      <svg class="farrow"><use href="#ic-arrow"/></svg>
+      <div class="fstep pb" data-step="3">
+        <div class="fnum">3</div><svg class="fic"><use href="#ic-reply"/></svg>
+        <h4>They sign &amp; send back</h4>
+        <p>Each signs its result and returns it to A. The signature proves it really came from them.</p>
+      </div>
+      <svg class="farrow"><use href="#ic-arrow"/></svg>
+      <div class="fstep pa" data-step="4">
+        <div class="fnum">4</div><svg class="fic"><use href="#ic-avg"/></svg>
+        <h4>A combines</h4>
+        <p>A averages the results into the next model value, and signs that too.</p>
+      </div>
+      <svg class="farrow"><use href="#ic-arrow"/></svg>
+      <div class="fstep poff" data-step="5">
+        <div class="fnum">5</div><svg class="fic"><use href="#ic-layers"/></svg>
+        <h4>A stores records off-chain</h4>
+        <p>A bundles the four signed records and pushes them to the off-chain store (IPFS-style), getting back a
+          content id <b>(CID)</b> that addresses the bundle.</p>
+      </div>
+      <svg class="farrow"><use href="#ic-arrow"/></svg>
+      <div class="fstep pon" data-step="6">
+        <div class="fnum">6</div><svg class="fic"><use href="#ic-seal"/></svg>
+        <h4>A anchors on-chain</h4>
+        <p>A posts a tiny <b>anchor</b> to the public ledger: the batch fingerprint plus that <b>CID</b>,
+          signed and linked to the previous anchor.</p>
+      </div>
+    </div>
+    <div class="legend">
+      <span class="lg pa">● A | coordinator</span><span class="lg pb">● B, C | collaborators</span>
+      <span class="lg poff">● off-chain | the bundle store</span><span class="lg pon">● on-chain | the public ledger</span>
+    </div>
+  </section>
+
+  <!-- 01 emit -->
+  <section id="emit" class="band alt reveal q-collapse">
+    <div class="q-head"><span class="q-num">01</span><h2>How are logs created?</h2></div>
+    <p class="section-sub">Every action becomes one signed record. Think of it as filling in a form, taking a
+      fingerprint of it, and pressing a personal wax seal on top.</p>
+    <div class="pipe">
+      <div class="pstage"><svg class="pic"><use href="#ic-doc"/></svg><h4>1. Write it down</h4><p>The facts of the
+        action: who, what, which round, the value, the time.</p></div>
+      <svg class="parrow"><use href="#ic-arrow"/></svg>
+      <div class="pstage"><svg class="pic"><use href="#ic-print"/></svg><h4>2. Take a fingerprint</h4><p>A short,
+        unique fingerprint of that exact content. Change one letter and the fingerprint changes completely.</p></div>
+      <svg class="parrow"><use href="#ic-arrow"/></svg>
+      <div class="pstage"><svg class="pic"><use href="#ic-key"/></svg><h4>3. Sign it</h4><p>The author signs the
+        fingerprint with their private key, so only they can produce that signature.</p></div>
+      <svg class="parrow"><use href="#ic-arrow"/></svg>
+      <div class="pstage on"><svg class="pic"><use href="#ic-seal"/></svg><h4>4. A sealed record</h4><p>The record +
+        its signature. Anyone can check the seal; nobody can forge it.</p></div>
+    </div>
+    <p class="note">A round produces four records: A's <b>broadcast</b>, B's and C's <b>signed results</b>, and A's
+      <b>combined result</b>. Together they say exactly who did what, and the signatures make it
+      <b>undeniable</b>.</p>
+  </section>
+
+  <!-- 02 store -->
+  <section id="store" class="band reveal q-collapse">
+    <div class="q-head"><span class="q-num">02</span><h2>How are they stored?</h2></div>
+    <p class="section-sub">Three layers, from the full detail up to a tiny public commitment.</p>
+    <div class="tiers">
+      <div class="tier off"><svg class="tic"><use href="#ic-doc"/></svg><h4>The log</h4>
+        <p>Every signed record kept in full, tagged with <b>who created it</b> and which round it belongs to.</p></div>
+      <div class="tier log"><svg class="tic"><use href="#ic-layers"/></svg><h4>The batch</h4>
+        <p>All of a round's records bundled into one package with a single <b>fingerprint</b>, held in the
+          <b>off-chain store</b> and addressed by a content id <b>(CID)</b>. Edit anything inside and both the
+          fingerprint and the CID change.</p></div>
+      <div class="tier on"><svg class="tic"><use href="#ic-seal"/></svg><h4>The seal</h4>
+        <p>A tiny commitment posted to the <b>public ledger</b>: the batch fingerprint plus the off-chain
+          <b>CID</b> and a link to the previous seal. Append-only.</p></div>
+    </div>
+    <p class="note">Order matters: the bundle is stored <b>off-chain first</b>, which produces its <b>CID</b>;
+      only then is the <b>on-chain</b> seal posted, carrying that CID. The bulky records stay off-chain and just
+      the small seal goes on the ledger, so the public cost stays tiny and roughly constant per round.</p>
+  </section>
+
+  <!-- 03 view -->
+  <section id="view" class="band alt reveal q-collapse">
+    <div class="q-head"><span class="q-num">03</span><h2>How are they viewed?</h2></div>
+    <p class="section-sub">The records are plain and open, so anyone authorized can read exactly what happened.</p>
+    <div class="two-col">
+      <div class="ways">
+        <div class="way"><svg class="wic"><use href="#ic-doc"/></svg><div><h4>One record</h4><p>Open a single
+          action by its id.</p></div></div>
+        <div class="way"><svg class="wic"><use href="#ic-layers"/></svg><div><h4>A whole round</h4><p>List every
+          action in a given round.</p></div></div>
+        <div class="way"><svg class="wic"><use href="#ic-link"/></svg><div><h4>The ledger</h4><p>Walk the chain of
+          seals from newest to first.</p></div></div>
+        <div class="way"><svg class="wic"><use href="#ic-eye"/></svg><div><h4>Live</h4><p>Watch it happen in the
+          demo below, straight from the running servers.</p></div></div>
+      </div>
+      <figure class="record-card">
+        <div class="rc-head"><span class="rc-type">BROADCAST</span><span class="rc-ok"><svg class="ic-sm"><use href="#ic-check"/></svg> signed</span></div>
+        <div class="rc-row"><span>By</span><b class="pa">A | coordinator</b></div>
+        <div class="rc-row"><span>Round</span><b>1</b></div>
+        <div class="rc-row"><span>Value (x)</span><b>100</b></div>
+        <div class="rc-row"><span>When</span><b>just now</b></div>
+        <figcaption>A record, shown in plain form. Run the demo for live data.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 04 immutable -->
+  <section id="immutable" class="band reveal q-collapse">
+    <div class="q-head"><span class="q-num">04</span><h2>Why can't they be faked or changed?</h2></div>
+    <p class="section-sub">Nothing is locked in a vault. Instead, <b>any change is instantly detectable</b>.
+      The signed, sealed log is the feature: it proves who did what, and lets anyone verify it.</p>
+
+    <figure class="auditfig">
+      <svg viewBox="0 0 720 250" role="img" aria-label="The immutable audit log">
+        <defs>
+          <marker id="ah2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M1,1 L8,4.5 L1,8 z" fill="#6b7280"/>
+          </marker>
+        </defs>
+        <text class="aud-title" x="375" y="22">Immutable audit log</text>
+
+        <!-- input chips -->
+        <g class="chip who"><rect x="20" y="40" width="132" height="40" rx="8"/><text x="86" y="65">who</text></g>
+        <g class="chip what"><rect x="20" y="92" width="132" height="40" rx="8"/><text x="86" y="117">what</text></g>
+        <g class="chip round"><rect x="20" y="144" width="132" height="40" rx="8"/><text x="86" y="169">which round</text></g>
+        <g class="chip changed"><rect x="20" y="196" width="132" height="40" rx="8"/><text x="86" y="221">anything changed</text></g>
+
+        <!-- converging arrows -->
+        <path class="aud-edge" marker-end="url(#ah2)" d="M152,60 C235,60 235,108 296,116"/>
+        <path class="aud-edge" marker-end="url(#ah2)" d="M152,112 C235,112 235,124 296,128"/>
+        <path class="aud-edge" marker-end="url(#ah2)" d="M152,164 C235,164 235,140 296,140"/>
+        <path class="aud-edge" marker-end="url(#ah2)" d="M152,216 C235,216 235,156 296,152"/>
+
+        <!-- sealed log -->
+        <g class="aud-box log"><rect x="300" y="92" width="150" height="84" rx="12"/>
+          <text x="375" y="128">Sealed,</text><text x="375" y="148">tamper-evident</text><text x="375" y="168">log</text></g>
+
+        <!-- verify arrow -->
+        <path class="aud-edge" marker-end="url(#ah2)" d="M450,134 L552,134"/>
+        <text class="aud-label" x="503" y="124">anyone can verify</text>
+
+        <!-- verifiers -->
+        <g class="aud-box verify"><rect x="556" y="104" width="144" height="60" rx="12"/>
+          <text x="628" y="130">Partners first,</text><text x="628" y="150">auditors later</text></g>
+      </svg>
+      <figcaption><b>Protection goal:</b> A cannot forge or alter a signed record, nor drop or reorder whole
+        batches.</figcaption>
+    </figure>
+
+    <ul class="proves">
+      <li><b>What it proves</b> who sent what, in which round, and whether anything changed.</li>
+      <li><b>Who it serves</b> partners first, external auditors later.</li>
+      <li><b>Why it matters</b> collaboration between non-trusting parties becomes defensible.</li>
+    </ul>
+
+    <h3 class="sub-h">The four safeguards that make it detectable</h3>
+    <div class="locks">
+      <div class="lock"><svg class="lic"><use href="#ic-key"/></svg><h4>The signature</h4><p>Only the author's
+        private key could have signed a record. Tamper with it and the signature stops matching.</p></div>
+      <div class="lock"><svg class="lic"><use href="#ic-layers"/></svg><h4>The batch fingerprint</h4><p>Every
+        record folds into one fingerprint for the round. Change, drop or reorder one and it no longer matches.</p></div>
+      <div class="lock"><svg class="lic"><use href="#ic-print"/></svg><h4>The address</h4><p>The off-chain bundle
+        is addressed by its own fingerprint. Edit the file and its address changes, breaking the reference.</p></div>
+      <div class="lock"><svg class="lic"><use href="#ic-link"/></svg><h4>The chain</h4><p>Each seal points back to
+        the previous one. Removing or altering a block breaks the link for everything after it.</p></div>
+    </div>
+    <p class="note">See it for yourself: in the live demo, <a href="#tamper">edit a record</a> and watch the
+      signature, the batch fingerprint and the chain all turn red.</p>
+  </section>
+
+  <!-- 05 resources -->
+  <section id="resources" class="band alt reveal q-collapse">
+    <div class="q-head"><span class="q-num">05</span><h2>What does it cost?</h2></div>
+    <div class="two-col">
+      <div class="prose">
+        <p><b>Computing:</b> tiny, just an ordinary laptop, no special hardware. Each round needs only a handful of
+          signatures and a few fingerprints; all of it finishes in milliseconds.</p>
+        <p><b>Storage:</b> the detailed records grow with the work and live in the off-chain store (cheap). The
+          <b>public ledger only ever holds a tiny seal per round</b>, and its size stays about the same whether a
+          round has four records or four hundred.</p>
+        <p>That separation is the whole point: keep the heavy data cheap and off to the side, anchor only a
+          small, constant-size proof on the public ledger.</p>
+      </div>
+      <figure class="cost">
+        <div class="cost-bars">
+          <div class="cb"><span class="cb-label">Off-chain (records)</span><div class="cb-track"><i class="cb-fill grow"></i></div><span class="cb-note">grows with data</span></div>
+          <div class="cb"><span class="cb-label">On-chain (the seal)</span><div class="cb-track"><i class="cb-fill flat"></i></div><span class="cb-note">~constant per round</span></div>
+        </div>
+        <figcaption>Public-ledger cost stays flat as the data grows.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- live demo -->
+  <section id="sim" class="sim reveal">
+    <div class="q-head"><span class="q-num">▶</span><h2>Live demo: see it on the real system</h2></div>
+    <p class="section-sub">This is not a mock-up. It drives the three actual servers (A, B, C) and the ledger.
+      Connect, create a training session, run a round, and step through every action as it really happens.</p>
+
+    <div class="sim-bar">
+      <div class="sim-actions">
+        <button id="btn-session" class="btn primary" disabled>① Create session</button>
+        <button id="btn-round" class="btn" disabled>② Run a round</button>
+        <span id="sim-status" class="status">Connecting to the servers…</span>
+      </div>
+      <details class="endpoints" open>
+        <summary>Server addresses</summary>
+        <label>Server A <input id="ep-a" value="http://127.0.0.1:3001" /></label>
+        <label>Server B <input id="ep-b" value="http://127.0.0.1:3002" /></label>
+        <label>Server C <input id="ep-c" value="http://127.0.0.1:3003" /></label>
+        <button id="ep-connect" class="btn ghost">Start new session</button>
+      </details>
+    </div>
+
+    <!-- empty state (before a session) -->
+    <div id="sim-empty" class="sim-empty">
+      <svg class="se-ic"><use href="#ic-people"/></svg>
+      <p>Click <b>Create session</b> to set up the A, B, C training group. The walkthrough appears here.</p>
+    </div>
+
+    <!-- workspace (hidden until a session exists) -->
+    <div id="sim-workspace" class="sim-workspace gated">
+      <div id="party-cards" class="party-cards"></div>
+
+      <div id="sim-stage" class="sim-stage gated" role="dialog" aria-label="Round walkthrough">
+        <button id="focus-close" class="focus-close" aria-label="Close walkthrough">✕</button>
+        <div class="stage-scroll">
+          <ol id="stepper" class="stepper"></ol>
+          <div class="stage">
+            <div class="stage-flow">
+              <svg id="flow" viewBox="0 0 640 344" aria-label="Round flow"></svg>
+              <div class="stage-controls">
+                <button id="step-prev" class="btn ghost" disabled>‹ Prev</button>
+                <button id="step-next" class="btn ghost" disabled>Next ›</button>
+                <button id="step-auto" class="btn ghost" disabled>Auto ▷</button>
+              </div>
+            </div>
+            <div class="stage-detail">
+              <h4 id="step-title">Run a round to begin</h4>
+              <p id="step-mech" class="mech"></p>
+              <div id="step-summary" class="summary"></div>
+              <div id="step-log-label" class="step-log-label" hidden>Log of this round</div>
+              <pre id="step-json" class="json-view masked" hidden></pre>
+              <button id="step-raw-btn" class="reveal-btn" hidden>⛶ Show full Log Information</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="walkthrough-bar" class="walkthrough-bar gated">
+        <span>Step-by-step round walkthrough</span>
+        <button id="walkthrough-open" class="btn primary">⛶ Open walkthrough</button>
+      </div>
+
+      <div id="sim-foot" class="sim-foot gated">
+        <div class="out-card">
+          <div class="out-head"><h4>Activity log</h4><button id="console-open" class="btn ghost">Open full screen ⛶</button></div>
+          <p class="out-sub">Every signed message exchanged this round.</p>
+          <pre id="console" class="console preview"></pre>
+        </div>
+        <div class="out-card">
+          <div class="out-head"><h4>Ledger</h4><button id="chain-open" class="btn ghost">Open full screen ⛶</button></div>
+          <p class="out-sub">Records go off-chain first; a tiny on-chain seal then points to them.</p>
+          <h5 class="lcol-h">Off-chain: the stored records</h5>
+          <div id="offchain" class="chain preview short"></div>
+          <h5 class="lcol-h">On-chain: the sealed anchors</h5>
+          <div id="chain" class="chain preview short"></div>
+        </div>
+      </div>
+
+      <div id="tamper" class="tamper gated">
+        <h4>Trust check: try to tamper with a record</h4>
+        <p class="section-sub">Pick a record from the last round, change its value, and re-check. The
+          safeguards should catch it.</p>
+        <div class="tamper-row">
+          <select id="tamper-pick" disabled></select>
+          <label>new value → <input id="tamper-val" type="text" disabled /></label>
+          <button id="tamper-check" class="btn" disabled>Re-check</button>
+        </div>
+        <div id="tamper-result" class="tamper-result"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- technical appendix / glossary -->
+  <section id="appendix" class="band appendix reveal">
+    <h2 class="section-title">Technical glossary</h2>
+    <p class="section-sub">Every term, its plain meaning, its exact form, and a reference. Type to filter.</p>
+    <input id="glossary-search" class="glossary-search" type="search" placeholder="Search terms…" aria-label="Search the glossary" />
+    <table class="glossary">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Technical form</th><th>Reference</th></tr></thead>
+      <tbody>
+        <tr><td>public-key cryptography</td><td>a key pair: the public key verifies, the private key signs</td><td>each party self-generates its own keypair</td><td><a href="https://en.wikipedia.org/wiki/Public-key_cryptography" target="_blank" rel="noopener">Public-key cryptography ↗</a></td></tr>
+        <tr><td>digital signature</td><td>proof only the key owner could have produced it</td><td><code>Ed25519.sign(inner_hash)</code></td><td><a href="https://en.wikipedia.org/wiki/Digital_signature" target="_blank" rel="noopener">Digital signature ↗</a></td></tr>
+        <tr><td>Ed25519</td><td>the signature scheme used here</td><td>EdDSA over Curve25519</td><td><a href="https://en.wikipedia.org/wiki/EdDSA" target="_blank" rel="noopener">EdDSA ↗</a></td></tr>
+        <tr><td>hash function (SHA-256)</td><td>a one-way fingerprint of data</td><td>SHA-256, 256-bit digest</td><td><a href="https://en.wikipedia.org/wiki/SHA-2" target="_blank" rel="noopener">SHA-2 ↗</a></td></tr>
+        <tr><td>canonicalization</td><td>deterministic byte form before hashing/signing</td><td>sorted keys, omit undefined</td><td><a href="https://en.wikipedia.org/wiki/Canonicalization" target="_blank" rel="noopener">Canonicalization ↗</a></td></tr>
+        <tr><td>leaf</td><td>one signed log record</td><td><code>{ id, fields, signature }</code></td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree ↗</a></td></tr>
+        <tr><td>fields</td><td>the content that gets signed</td><td><code>actor, party_id, type, session_id, round_id, seq, payload, version, timestamp, input_refs?</code></td><td><a href="https://en.wikipedia.org/wiki/JSON" target="_blank" rel="noopener">JSON ↗</a></td></tr>
+        <tr><td>inner_hash</td><td>fingerprint of the content</td><td><code>SHA256(canonical(fields))</code></td><td><a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function" target="_blank" rel="noopener">Hash function ↗</a></td></tr>
+        <tr><td>leaf_hash</td><td>the record's Merkle-tree leaf</td><td><code>SHA256(0x00 ‖ canonical(fields + signature))</code></td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree ↗</a></td></tr>
+        <tr><td>actor / pubKeyRef</td><td>the signer's cryptographic id</td><td><code>"key:" + SHA256(publicKey)[:32]</code></td><td><a href="https://en.wikipedia.org/wiki/Public-key_cryptography" target="_blank" rel="noopener">Public-key cryptography ↗</a></td></tr>
+        <tr><td>party_id</td><td>the user (A / B / C) who created the record</td><td>stable UUID, inside signed <code>fields</code></td><td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier" target="_blank" rel="noopener">UUID ↗</a></td></tr>
+        <tr><td>Merkle tree</td><td>a tree of hashes committing many records by one root</td><td>internal node <code>SHA256(0x01 ‖ L ‖ R)</code>, odd promoted</td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree ↗</a></td></tr>
+        <tr><td>merkle_root</td><td>one fingerprint committing the whole round</td><td>the root of the Merkle tree</td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree ↗</a></td></tr>
+        <tr><td>off-chain</td><td>bulky data kept outside the chain (IPFS-style)</td><td>key <code>offchain:&lt;cid&gt;</code> (mock IPFS / Redis)</td><td><a href="https://en.wikipedia.org/wiki/InterPlanetary_File_System" target="_blank" rel="noopener">IPFS ↗</a></td></tr>
+        <tr><td>IPFS</td><td>content-addressed distributed storage</td><td>mocked here; addresses a bundle by its CID</td><td><a href="https://en.wikipedia.org/wiki/InterPlanetary_File_System" target="_blank" rel="noopener">IPFS ↗</a></td></tr>
+        <tr><td>CID (content id)</td><td>content address of the off-chain bundle</td><td><code>"cid:sha256:" + SHA256(canonical(leaves))[:46]</code></td><td><a href="https://en.wikipedia.org/wiki/Content-addressable_storage" target="_blank" rel="noopener">Content addressing ↗</a></td></tr>
+        <tr><td>on-chain</td><td>data committed to the public ledger</td><td>key <code>onchain:&lt;tx_hash&gt;</code></td><td><a href="https://en.wikipedia.org/wiki/Blockchain" target="_blank" rel="noopener">Blockchain ↗</a></td></tr>
+        <tr><td>blockchain</td><td>an append-only chain of hash-linked blocks</td><td>each anchor links to the previous one</td><td><a href="https://en.wikipedia.org/wiki/Blockchain" target="_blank" rel="noopener">Blockchain ↗</a></td></tr>
+        <tr><td>anchor / block</td><td>the on-chain seal of a round</td><td><code>{ merkle_root, cid, submitter_id, previous_tx_hash, tx_sig, tx_hash }</code></td><td><a href="https://en.wikipedia.org/wiki/Blockchain" target="_blank" rel="noopener">Blockchain ↗</a></td></tr>
+        <tr><td>tx_hash</td><td>the seal's own id (its transaction hash)</td><td><code>"tx:sha256:" + SHA256(canonical(header + tx_sig))[:46]</code></td><td><a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function" target="_blank" rel="noopener">Hash function ↗</a></td></tr>
+        <tr><td>previous_tx_hash</td><td>link to the prior seal, the hash chain</td><td>null on the first (genesis) block</td><td><a href="https://en.wikipedia.org/wiki/Hash_chain" target="_blank" rel="noopener">Hash chain ↗</a></td></tr>
+        <tr><td>wallet address</td><td>A's on-chain account that pays to seal</td><td><code>"0x" + SHA256(publicKey)[-40:]</code> (aggregator only)</td><td><a href="https://en.wikipedia.org/wiki/Cryptocurrency_wallet" target="_blank" rel="noopener">Crypto wallet ↗</a></td></tr>
+        <tr><td>idempotency_key</td><td>prevents a record being counted twice</td><td><code>"idem:" + SHA256(session ‖ round ‖ actor ‖ type ‖ seq)[:24]</code></td><td><a href="https://en.wikipedia.org/wiki/Idempotence" target="_blank" rel="noopener">Idempotence ↗</a></td></tr>
+        <tr><td>session_id / round_id / seq</td><td>which training run, which round, ordering</td><td>in <code>fields</code></td><td>n/a</td></tr>
+      </tbody>
+    </table>
+    <p id="glossary-empty" class="glossary-empty" hidden>No terms match your search.</p>
+  </section>
+
+  <!-- dim backdrop behind the focus-mode walkthrough panel (#sim-stage) -->
+  <div id="focus-backdrop" class="focus-backdrop" hidden aria-hidden="true"></div>
+
+  <!-- full-screen panel for the record / activity log / ledger / keys -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head">
+        <h3 id="modal-title"></h3>
+        <button id="modal-close" class="modal-x" aria-label="Close">✕</button>
+      </div>
+      <div id="modal-body" class="modal-body" tabindex="0"></div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <p><b>PVPI on SFAIX</b>: Stage 1 prototype. The live demo runs against the real A / B / C servers;
+      cryptography (Ed25519, SHA-256, Merkle) is recomputed in the browser for the trust check.</p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "name": "fl-psi-stage1",
+  "version": "1.0.0",
+  "description": "Stage 1 (Scalar) demo: 3-party federated round with signed logs, Merkle batch, and on-chain anchor (Blockchain Audit Layer).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "main": "node --experimental-strip-types src/main.ts",
+    "agg": "node --experimental-strip-types src/main.ts agg",
+    "net:b": "node --experimental-strip-types src/main.ts trainer B",
+    "net:c": "node --experimental-strip-types src/main.ts trainer C",
+    "present": "node --experimental-strip-types src/present.ts",
+    "web": "node --experimental-strip-types src/dev-all.ts",
+    "redis:up": "docker compose up -d",
+    "redis:down": "docker compose down",
+    "test": "REDIS_MOCK=1 AGG_PORT=4731 TRAINER_PORTS=4732,4733 node --experimental-strip-types --test --test-force-exit 'src/**/*.test.ts'",
+    "typecheck": "tsc --noEmit",
+    "zk:build": "bash circuit/scripts/build.sh",
+    "zk:inputs": "node circuit/scripts/gen-inputs.mjs",
+    "zk:prove": "node circuit/scripts/prove.mjs",
+    "zk:verify": "node circuit/scripts/verify.mjs",
+    "zk:demo": "node circuit/scripts/gen-inputs.mjs && node circuit/scripts/prove.mjs update_gradient && node circuit/scripts/verify.mjs update_gradient && node circuit/scripts/prove.mjs update_model && node circuit/scripts/verify.mjs update_model"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.6",
+    "circomlibjs": "^0.1.7",
+    "express": "^5.2.1",
+    "ioredis": "^5.11.1",
+    "snarkjs": "^0.7.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "circomlib": "^2.0.5",
+    "ioredis-mock": "^8.13.1",
+    "typescript": "^5.5.0"
+  }
+}

@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.npm/
+.pnpm-store/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime / local data
+dump.rdb
+*.rdb
+store-mock/
+store/
+*.pid
+*.seed
+
+# Build output (tsconfig is noEmit, but keep these for safety)
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Caches
+.cache/
+.eslintcache
+coverage/
+.nyc_output/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Note: ZK circuit artifacts are ignored by circuit/.gitignore

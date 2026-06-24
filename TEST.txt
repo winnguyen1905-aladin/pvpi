@@ -1,0 +1,44 @@
+curl -X POST 'http://127.0.0.1:3002/api/model/0b7320d3-f677-4586-998a-6115b344762a/2' \
+  -H 'content-type: application/json' \
+  -H 'x-party: A' \
+  -d '{
+    "leaf": {
+      "id": "aba31353-4e3e-4949-addf-0489a517472c",
+      "fields": {
+        "actor": "key:417ce24bf8dcb677150e2d11fbbcc801",
+        "party_id": "7bbcf776-47a5-48b9-b851-6df7195db0f4",
+        "type": "SEND",
+        "session_id": "0b7320d3-f677-4586-998a-6115b344762a",
+        "round_id": 2,
+        "seq": 1,
+        "idempotency_key": "idem:77ab0ee055c1bd603ce95b9d",
+        "payload": 50,
+        "version": "v1",
+        "timestamp": 1782141532304
+      },
+      "signature": "e582c61874ef5847674016a53bfb45b13e67d86a877e0e2747f75d90d513a66b71c3184dba07b3e73e51895c029403b5126cd544904736e5042cc9f3a4ab4f0e"
+    }
+  }'
+
+
+curl -X POST 'http://127.0.0.1:3001/api/gradient/0b7320d3-f677-4586-998a-6115b344762a/2' \
+  -H 'content-type: application/json' \
+  -H 'x-party: B' \
+  -d '{
+    "leaf": {
+      "id": "9f1c0e22-7b44-4c8a-9a1e-2d6f0b3c5511",
+      "fields": {
+        "actor": "key:<B-pubKeyRef>",
+        "party_id": "31cda20f-abcd-415c-8050-0814c640b0e7",
+        "type": "UPDATE_GRADIENT",
+        "session_id": "0b7320d3-f677-4586-998a-6115b344762a",
+        "round_id": 2,
+        "seq": 1,
+        "idempotency_key": "idem:<derived-by-B>",
+        "payload": 60,
+        "version": "v1",
+        "timestamp": 1782141532500
+      },
+      "signature": "<B-ed25519-signature>"
+    }
+  }'
