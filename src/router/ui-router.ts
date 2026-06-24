@@ -6,6 +6,8 @@ import type { Request, Response, Router } from "express";
 // real backend, and read the resulting leaves + on/off-chain records.
 export interface UiHandlers {
   identity(): Promise<unknown> | unknown;
+  serverlog(): Promise<unknown> | unknown;
+  resetlog(): Promise<unknown> | unknown;
   createSession(trainers: string[]): Promise<unknown>;
   runRound(session_id: string, x?: number): Promise<unknown>;
   sessions(): Promise<unknown>;
@@ -19,6 +21,14 @@ export function uiRouter(h: UiHandlers): Router {
 
   r.get("/api/identity", async (_req: Request, res: Response) => {
     res.json(await h.identity());
+  });
+
+  r.get("/api/serverlog", async (_req: Request, res: Response) => {
+    res.json(await h.serverlog());
+  });
+
+  r.post("/api/serverlog/reset", async (_req: Request, res: Response) => {
+    res.json(await h.resetlog());
   });
 
   r.post("/api/session", async (req: Request, res: Response) => {

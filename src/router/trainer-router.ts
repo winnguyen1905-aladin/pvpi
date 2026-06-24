@@ -8,6 +8,10 @@ export interface TrainerHandlers {
   model(sender: string, session_id: string, round_id: number, body: any): Promise<unknown> | unknown;
   // GET /api/identity — this trainer's own keypair + secret (presentation only).
   identity(): Promise<unknown> | unknown;
+  // GET /api/serverlog — this trainer's recent server-side log lines (presentation only).
+  serverlog(): Promise<unknown> | unknown;
+  // POST /api/serverlog/reset — clear this trainer's log buffer (on a new session).
+  resetlog(): Promise<unknown> | unknown;
 }
 
 export function trainerRouter(h: TrainerHandlers): Router {
@@ -16,7 +20,9 @@ export function trainerRouter(h: TrainerHandlers): Router {
   // A broadcasts the SEND(x) here; the sender (A) comes from the x-party header. The
   // trainer verifies, computes its gradient, and pushes it back to A.
   r.post("/api/model/:session_id/:round_id", async (req: Request, res: Response) => {
-    const sender = req.get("x-party") ?? "";
+    // a party name only ever needs [A-Za-z0-9._-]; strip anything else so a forged header can't
+    // be echoed into logs/responses (the rejected line is surfaced in the server-log UI)
+    const sender = (req.get("x-party") ?? "").replace(/[^\w.-]/g, "").slice(0, 32);
     const session_id = String(req.params.session_id);
     const round_id = Number(req.params.round_id);
     res.json(await h.model(sender, session_id, round_id, req.body));
@@ -24,6 +30,14 @@ export function trainerRouter(h: TrainerHandlers): Router {
 
   r.get("/api/identity", async (_req: Request, res: Response) => {
     res.json(await h.identity());
+  });
+
+  r.get("/api/serverlog", async (_req: Request, res: Response) => {
+    res.json(await h.serverlog());
+  });
+
+  r.post("/api/serverlog/reset", async (_req: Request, res: Response) => {
+    res.json(await h.resetlog());
   });
 
   return r;

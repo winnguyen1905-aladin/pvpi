@@ -124,18 +124,19 @@ function resetWorkspace() {
   if (!$("modal").hidden) closeModal(); // tear down any open overlay on reset…
   if ($("sim-stage").classList.contains("focus-panel")) closeFocus(); // …and the walkthrough
   document.body.style.overflow = ""; // ensure the scroll lock is always released
-  ["chain", "offchain", "console", "stepper", "step-summary", "step-json", "tamper-pick", "tamper-result"].forEach((id) => { const e = $(id); if (e) e.innerHTML = ""; });
+  ["chain", "offchain", "console", "slog-a", "slog-b", "slog-c", "stepper", "step-summary", "step-json", "tamper-pick", "tamper-result"].forEach((id) => { const e = $(id); if (e) e.innerHTML = ""; });
   $("step-title").textContent = "Run a round to begin"; $("step-mech").textContent = "";
   $("step-json").hidden = true; $("step-log-label").hidden = true; $("step-raw-btn").hidden = true;
   $("step-prev").disabled = $("step-next").disabled = $("step-auto").disabled = true;
   $("tamper-pick").disabled = $("tamper-val").disabled = $("tamper-check").disabled = true;
-  ["sim-stage", "sim-foot", "tamper", "walkthrough-bar"].forEach((id) => $(id).classList.add("gated")); // round output hidden until a round runs
+  ["sim-stage", "sim-foot", "server-logs", "tamper", "walkthrough-bar"].forEach((id) => $(id).classList.add("gated")); // round output hidden until a round runs
   drawFlow([]);
 }
 
 // ---------- create session + run round ----------
 async function createSession() {
   $("sim-status").textContent = "Creating session…";
+  await resetServerLogs(); // a new session starts with fresh server logs on every party
   const meta = await postJSON(`${ENDPOINTS.A}/api/session`, { trainers: ["B", "C"] });
   resetWorkspace(); // a new session always starts clean
   S.session = meta.session_id;
@@ -157,8 +158,10 @@ async function runRound() {
     buildSteps(data);
     $("sim-status").textContent = `Round ${data.result.round_id} complete. New model x = ${data.result.x_new}. Step through it below.`;
     renderLedgerAppend(data.anchor, data.leaves);
+    renderConsole(S.steps.length - 1); // Activity log shows the FULL round immediately, regardless of step navigation
+    refreshServerLogs(); // pull each server's own log into its panel
     populateTamper(data.leaves);
-    ["sim-foot", "tamper", "walkthrough-bar"].forEach((id) => $(id).classList.remove("gated")); // reveal the inline output + reopen control
+    ["sim-foot", "server-logs", "tamper", "walkthrough-bar"].forEach((id) => $(id).classList.remove("gated")); // reveal the inline output + reopen control
     openWalkthrough(); // focus mode: the step-by-step walkthrough pops into a centered panel
     gotoStep(0);
     $("step-prev").disabled = $("step-next").disabled = $("step-auto").disabled = false;
@@ -272,7 +275,8 @@ function gotoStep(i) {
     Object.entries(step.compute).forEach(([n, c]) => { animateCompute(n, c); flowPulse($("flow"), center(n).x, center(n).y, TINT[n] || TINT.primary); });
   }
   step.msgs.forEach((m, k) => flowTimers.push(setTimeout(() => animateDot(m[0], m[1], m[2]), m[3] != null ? m[3] : 120 + k * 220)));
-  renderConsole(i); // rebuild from steps 0..i so navigating back/forth never duplicates lines
+  // NB: the Activity log is filled in full by runRound and intentionally left untouched here,
+  // so it always shows the complete round even if the user never steps through it.
 }
 
 // autoplay dwell for a step: long enough for its slowest comet (delay + 760ms travel) to arrive and pulse,
@@ -411,6 +415,11 @@ function openRecordModal() {
   if (!step || !step.json) return;
   showModal(`Full log: ${step.title}`, `<pre class="json-view modal-fill">${highlightJson(step.json)}</pre>`);
 }
+// big float-panel view of ONE server's full log, full width and height (content is already escaped inline)
+function openServerLogModal(party) {
+  const id = "slog-" + String(party).toLowerCase();
+  showModal(`Server ${party} actions`, `<pre class="console modal-fill">${$(id)?.innerHTML || ""}</pre>`, { wide: true });
+}
 function closeModal() {
   $("modal").hidden = true;
   $("modal-body").innerHTML = "";
@@ -454,22 +463,45 @@ function handleOverlayKey(e, container, onClose) {
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 }
 
-// ---------- console ----------
-function appendConsole(lines) {
-  const c = $("console");
+// ---------- console / server logs ----------
+function appendLogLines(target, lines) {
+  if (!target) return;
   for (const ln of lines || []) {
     const m = ln.match(/^\[(.+?)\]\[(.+?)\]\[(.+?)\] - (.*)$/);
     const div = el("div");
-    if (m) div.innerHTML = `<span class="ts">[${m[1].slice(11, 23)}]</span><span class="fr">[${m[2]}]</span><span class="to">[${m[3]}]</span> <span class="ct">${m[4]}</span>`;
-    else div.innerHTML = `<span class="ct">${ln}</span>`;
-    c.appendChild(div);
+    // escape every interpolated field: log lines can carry network-influenced content (e.g. a forged
+    // x-party header echoed on a reject), and these panels are filled from /api/serverlog
+    if (m) div.innerHTML = `<span class="ts">[${escHtml(m[1].slice(11, 23))}]</span><span class="fr">[${escHtml(m[2])}]</span><span class="to">[${escHtml(m[3])}]</span> <span class="ct">${escHtml(m[4])}</span>`;
+    else div.innerHTML = `<span class="ct">${escHtml(ln)}</span>`;
+    target.appendChild(div);
   }
-  c.scrollTop = c.scrollHeight;
+  target.scrollTop = target.scrollHeight;
 }
-// rebuild the round's activity log from steps 0..i (idempotent, no duplicates on back/forth navigation)
+function appendConsole(lines) { appendLogLines($("console"), lines); }
+// rebuild the Activity log from steps 0..i. Called once with the LAST step after a round so the
+// log is always complete, independent of step navigation.
 function renderConsole(uptoIdx) {
   $("console").innerHTML = "";
   for (let k = 0; k <= uptoIdx; k++) appendConsole(S.steps[k]?.log);
+}
+// each server's own real log, fetched per party through the proxy (/svc/a|b|c/api/serverlog)
+function renderServerLog(id, lines) {
+  const t = $(id); if (!t) return;
+  t.innerHTML = "";
+  appendLogLines(t, lines && lines.length ? lines : ["(no actions yet)"]);
+}
+async function refreshServerLogs() {
+  await Promise.all([["A", "slog-a"], ["B", "slog-b"], ["C", "slog-c"]].map(async ([party, id]) => {
+    try { const d = await getJSON(`${ENDPOINTS[party]}/api/serverlog`); renderServerLog(id, d.lines || []); }
+    catch { renderServerLog(id, ["(server actions unavailable)"]); }
+  }));
+}
+// clear each server's log buffer (and its panel) so a new session starts with fresh logs
+async function resetServerLogs() {
+  ["slog-a", "slog-b", "slog-c"].forEach((id) => { const e = $(id); if (e) e.innerHTML = ""; });
+  await Promise.all(["A", "B", "C"].map(async (party) => {
+    try { await postJSON(`${ENDPOINTS[party]}/api/serverlog/reset`, {}); } catch { /* best-effort, don't block session creation */ }
+  }));
 }
 
 // ---------- ledger (off-chain = CID maps to stored leaves bundle; on-chain = tx maps to anchor) ----------
@@ -519,6 +551,7 @@ function populateTamper(leaves) {
   });
   sel.disabled = false; $("tamper-val").disabled = false; $("tamper-check").disabled = false;
   syncTamperVal();
+  $("tamper-result").innerHTML = `<p class="tamper-hint">Change a value above and press <b>Check it</b>. The signature and the sealed fingerprint will immediately disagree.</p>`;
 }
 function syncTamperVal() {
   const l = S.round.leaves[Number($("tamper-pick").value)];
@@ -569,6 +602,7 @@ function wire() {
   $("party-cards").onclick = (e) => { const b = e.target.closest(".pcard-keys"); if (b) openKeysModal(b.dataset.party); };
   $("console-open").onclick = () => openModal("Activity log: this round", "console", "console");
   $("chain-open").onclick = openLedgerModal;
+  $("server-logs").onclick = (e) => { const b = e.target.closest(".slog-expand"); if (b) openServerLogModal(b.dataset.slog); };
   $("modal-close").onclick = closeModal;
   $("modal").onclick = (e) => { if (e.target.id === "modal") closeModal(); };
   $("walkthrough-open").onclick = openWalkthrough;

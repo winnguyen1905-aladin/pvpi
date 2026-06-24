@@ -77,6 +77,8 @@ export function createAggregatorNode(opts: AggregatorNodeOpts = {}): AggregatorN
       privateKeyPem: cfg.privateKeyPem,
       walletAddress: aggregator.wallet.address,
     }),
+    serverlog: () => ({ name: aggregator.name, role: "aggregator", lines: activity.slice(-300) }),
+    resetlog: () => { activity.length = 0; return { ok: true }; }, // new session starts with a fresh log
     createSession: (trainers) => svc.createSession(trainers),
     runRound: async (session_id, x) => {
       const from = activity.length;
@@ -129,7 +131,16 @@ export function createTrainerNode(opts: TrainerNodeOpts): TrainerNode {
   const registry = buildRegistry();
   const cfg = partyConfig(opts.name);
   const trainer = new Trainer(opts.name, cfg.secret ?? 0, loadKey(opts.name), cfg.id);
-  const svc = new TrainerService(trainer, registry, { aggregator: aggregatorPeer(), log: opts.log });
+
+  // Buffer this trainer's own log lines (in addition to the normal sink) so the UI can
+  // show its real server-side log alongside A's.
+  const serverLog: string[] = [];
+  const log = (m: string): void => {
+    serverLog.push(m);
+    if (serverLog.length > 500) serverLog.shift();
+    (opts.log ?? ((s: string) => console.log(s)))(m);
+  };
+  const svc = new TrainerService(trainer, registry, { aggregator: aggregatorPeer(), log });
 
   const handlers: TrainerHandlers = {
     model: (sender, session_id, round_id, body) => svc.onBroadcast(sender, session_id, round_id, body.leaf),
@@ -142,6 +153,8 @@ export function createTrainerNode(opts: TrainerNodeOpts): TrainerNode {
       privateKeyPem: cfg.privateKeyPem,
       secret: trainer.secret,
     }),
+    serverlog: () => ({ name: trainer.name, role: "trainer", lines: serverLog.slice(-300) }),
+    resetlog: () => { serverLog.length = 0; return { ok: true }; }, // new session starts with a fresh log
   };
 
   const app = express();

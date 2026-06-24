@@ -1,14 +1,15 @@
 services:
   app:
-    # builds the image from the Dockerfile in this repo. To deploy with ONLY this compose
-    # file (no source on the server), push the built image to a registry and set `image:`
-    # to that registry path: `docker compose build && docker compose push`.
+    # builds the image from the Dockerfile in this repo. To deploy with ONLY this compose file
+    # (no source on the server), set APP_IMAGE to a registry path you own, then
+    # `docker login <registry>` && `docker compose build && docker compose push`.
+    # On the server, the same APP_IMAGE makes `docker compose up -d` pull instead of build.
     build: .
-    image: fl-psi-app:latest
+    image: ${APP_IMAGE:-fl-psi-app:latest}
     container_name: fl-psi-app
     init: true # proper PID 1 (reaps the A/B/C child processes, forwards signals)
     ports:
-      # the ONLY published port. Open http://localhost:7400  (override: APP_PORT=...)
+      # the app, published to the host. Open http://localhost:7400  (override: APP_PORT=...)
       - "${APP_PORT:-7400}:8080"
     environment:
       NODE_ENV: production
@@ -36,5 +37,24 @@ services:
       retries: 5
     restart: unless-stopped
 
+  redisinsight:
+    # Redis inspection UI. Open http://localhost:5540  (override: REDISINSIGHT_PORT=...)
+    # Reaches the wrapped redis by its service name over the internal network (redis:6379).
+    image: redis/redisinsight:latest
+    container_name: fl-psi-redisinsight
+    ports:
+      - "${REDISINSIGHT_PORT:-5540}:5540"
+    environment:
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: "6379"
+      RI_REDIS_ALIAS: fl-psi
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - redisinsight-data:/data
+    restart: unless-stopped
+
 volumes:
   redis-data:
+  redisinsight-data:
