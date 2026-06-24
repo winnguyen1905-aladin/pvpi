@@ -206,7 +206,7 @@ section { padding: 78px 24px; }
 #flow .lnk { stroke: var(--line); stroke-width: 2; fill: none; }
 
 .sim-foot { display: grid; grid-template-columns: 1fr; gap: 22px; margin-top: 24px; } /* Activity log and Ledger each get their own full-width row */
-.out-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px; }
+.out-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px; min-width: 0; } /* min-width:0: stop long JSON lines from forcing the grid column wider than the container */
 .out-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .out-head h4, .tamper h4 { margin: 0; }
 .out-sub { color: var(--muted); font-size: .84rem; margin: 4px 0 12px; }
@@ -216,7 +216,7 @@ section { padding: 78px 24px; }
 .chain { display: flex; flex-direction: column; gap: 10px; }
 .chain.preview { max-height: 180px; overflow: auto; }
 /* ledger blocks: CID maps to the leaves array (IPFS-style) and tx_hash maps to the anchor (blockchain-style) */
-.lblock { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; animation: slidein .35s ease; }
+.lblock { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; animation: slidein .35s ease; min-width: 0; } /* let the long-line JSON scroll inside its own pre instead of stretching the card */
 .lblock.bad { border-color: var(--bad); background: #fff5f5; } /* tamper detected, functional alert, kept */
 .lhi { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; background: var(--primary-soft); border: 1px solid #dfe2f8; border-radius: 8px; padding: 7px 10px; margin-bottom: 8px; }
 .lhi-k { font: 700 .68rem var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--primary); flex: 0 0 auto; }
@@ -230,8 +230,9 @@ section { padding: 78px 24px; }
 .ledger-book { display: grid; grid-template-columns: max-content 1fr 1fr; gap: 14px 22px; align-items: start; }
 .ledger-book .lcol-h { margin: 0 0 2px; font-size: .82rem; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .ledger-book .lbh-off { color: var(--off); } .ledger-book .lbh-on { color: var(--on); }
-.ledger-book .lblock { margin: 0; }
-.ledger-book .json-view.ledger-json { max-height: 440px; } /* show more of the bundle/anchor in the full panel */
+.ledger-book > * { min-width: 0; } /* keep each 1fr column a true 50/50; long JSON lines scroll inside their own pre instead of blowing the track out and hiding the on-chain column */
+.ledger-book .lblock { margin: 0; min-width: 0; }
+.ledger-book .json-view.ledger-json { max-height: 440px; min-width: 0; } /* show more of the bundle/anchor in the full panel */
 .ledger-rnum { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; padding-top: 2px; }
 .ledger-rnum span { font: 700 .62rem var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .ledger-rnum b { font-size: 1.05rem; color: var(--ink); white-space: nowrap; }

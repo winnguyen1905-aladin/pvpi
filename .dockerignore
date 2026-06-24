@@ -1,0 +1,16 @@
+# keep the build context small and the image clean
+node_modules
+.git
+.gitignore
+*.log
+.env
+.env.*
+!.env.example
+Dockerfile
+docker-compose.yml
+.dockerignore
+README.md
+CLAUDE.md
+TEST.txt
+src/tests
+circuit/build

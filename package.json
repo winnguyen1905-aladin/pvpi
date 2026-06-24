@@ -11,7 +11,7 @@
     "net:c": "node --experimental-strip-types src/main.ts trainer C",
     "present": "node --experimental-strip-types src/present.ts",
     "web": "node --experimental-strip-types src/dev-all.ts",
-    "redis:up": "docker compose up -d",
+    "redis:up": "docker compose up -d redis",
     "redis:down": "docker compose down",
     "test": "REDIS_MOCK=1 AGG_PORT=4731 TRAINER_PORTS=4732,4733 node --experimental-strip-types --test --test-force-exit 'src/**/*.test.ts'",
     "typecheck": "tsc --noEmit",

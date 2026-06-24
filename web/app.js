@@ -39,7 +39,9 @@ function maskedJson(obj, indent = 1) {
 
 // ---------- state ----------
 const ENDPOINTS = JSON.parse(localStorage.getItem("fl-endpoints") || "null") || {
-  A: "http://127.0.0.1:3001", B: "http://127.0.0.1:3002", C: "http://127.0.0.1:3003",
+  // same-origin proxy paths: the present server forwards /svc/a|b|c to the A/B/C party servers,
+  // so the whole demo works behind ONE port and nothing else needs to be exposed
+  A: "/svc/a", B: "/svc/b", C: "/svc/c",
 };
 const S = { ids: {}, pubByRef: {}, session: null, round: null, steps: [], idx: -1, auto: null, ledger: [] };
 
@@ -207,7 +209,7 @@ function buildSteps(d) {
     {
       code: "B3", title: "Step 3: B and C send signed results back", lit: ["a", "b", "c"], msgs: [["b", "a", "x'", 120], ["c", "a", "x''", 120]],
       mech: "Both send their signed results to A. A confirms the sender matches the signature and that it belongs to this round before accepting.",
-      summary: srow("B → A", "signed result ✓", "pb") + srow("C → A", "signed result ✓", "pc") + srow("A checks", "sender = signer"),
+      summary: srow("B to A", "signed result ✓", "pb") + srow("C to A", "signed result ✓", "pc") + srow("A checks", "sender = signer"),
       annot: { a: "verifies signers", b: `sends x' = ${ugB}`, c: `sends x'' = ${ugC}` },
       json: ugs, log: bucketActivity(d.activity, "update_gradient"),
     },
@@ -224,7 +226,7 @@ function buildSteps(d) {
       summary: srow("Leaves stored", d.leaves.length, "pa") + srow("Batch fingerprint", trunc(anchor?.merkle_root, 22)) + srow("Off-chain id (cid)", trunc(anchor?.cid, 22)),
       annot: { a: "bundle leaves", off: `cid ${shortCid}` },
       json: { cid: anchor?.cid, merkle_root: anchor?.merkle_root, leaves: d.leaves },
-      log: [`A: stored ${d.leaves.length} leaves off-chain → ${anchor?.cid}`],
+      log: [`A: stored ${d.leaves.length} leaves off-chain, cid ${anchor?.cid}`],
     },
     {
       code: "B6", title: "Step 6: A anchors on-chain", lit: ["a", "on"], msgs: [["a", "on", "anchor", 120], ["on", "a", "tx", 880]],
@@ -470,7 +472,7 @@ function renderConsole(uptoIdx) {
   for (let k = 0; k <= uptoIdx; k++) appendConsole(S.steps[k]?.log);
 }
 
-// ---------- ledger (off-chain = CID → stored leaves bundle; on-chain = tx → anchor) ----------
+// ---------- ledger (off-chain = CID maps to stored leaves bundle; on-chain = tx maps to anchor) ----------
 const roundLabel = (r) => (r && typeof r === "object") ? `${r.round_start}-${r.round_end}` : r; // batched anchors use a range
 // off-chain block: addressed by CID; the stored content is the leaves array, exactly what IPFS would return for that CID
 function offBlockHtml(anchor, leaves) {
@@ -756,7 +758,14 @@ function archPlay() {
   if (archState.step >= ARCH_STEPS) archGoto(1); else archGoto(archState.step);
   const advance = () => {
     if (!archState.playing) return;
-    if (archState.step >= ARCH_STEPS) { archPause(); return; }
+    if (archState.step >= ARCH_STEPS) {
+      // reached the last step: stop the loop but let its just-spawned tokens play out
+      // (archPause would clear the dots/timers archGoto(6) just created, so soft-stop instead)
+      archState.playing = false;
+      clearTimeout(archState.timer);
+      $("arch-play").textContent = "▶ Play";
+      return;
+    }
     archState.timer = setTimeout(() => { archGoto(archState.step + 1); advance(); }, ARCH_DWELL[archState.step] || 1700);
   };
   advance();

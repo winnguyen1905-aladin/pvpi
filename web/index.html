@@ -28,7 +28,7 @@
   <!-- nav -->
   <header class="nav">
     <div class="nav-inner">
-      <a class="brand" href="#top"><span class="brand-mark">⛓</span> PVPI <span class="brand-on">on</span> SFAIX</a>
+      <a class="brand" href="#top"><span class="brand-mark">(>.<)</span> PVPI <span class="brand-on">on</span> SFAIX</a>
       <nav class="nav-links">
         <a href="#arch">How it works</a>
         <a href="#emit">Emit</a>
@@ -136,7 +136,7 @@
         <button id="arch-prev" class="btn ghost">‹ Prev</button>
         <button id="arch-play" class="btn primary">▶ Play</button>
         <button id="arch-next" class="btn ghost">Next ›</button>
-        <button id="arch-replay" class="btn ghost">↻ Replay</button>
+        <button id="arch-replay" class="btn ghost">Replay</button>
         <span id="arch-stepnum" class="arch-stepnum" aria-live="polite">Step 1 / 6</span>
       </div>
     </div>
@@ -356,9 +356,9 @@
       </div>
       <details class="endpoints" open>
         <summary>Server addresses</summary>
-        <label>Server A <input id="ep-a" value="http://127.0.0.1:3001" /></label>
-        <label>Server B <input id="ep-b" value="http://127.0.0.1:3002" /></label>
-        <label>Server C <input id="ep-c" value="http://127.0.0.1:3003" /></label>
+        <label>Server A <input id="ep-a" value="/svc/a" /></label>
+        <label>Server B <input id="ep-b" value="/svc/b" /></label>
+        <label>Server C <input id="ep-c" value="/svc/c" /></label>
         <button id="ep-connect" class="btn ghost">Start new session</button>
       </details>
     </div>
@@ -425,7 +425,7 @@
           safeguards should catch it.</p>
         <div class="tamper-row">
           <select id="tamper-pick" disabled></select>
-          <label>new value → <input id="tamper-val" type="text" disabled /></label>
+          <label>new value: <input id="tamper-val" type="text" disabled /></label>
           <button id="tamper-check" class="btn" disabled>Re-check</button>
         </div>
         <div id="tamper-result" class="tamper-result"></div>
@@ -441,29 +441,29 @@
     <table class="glossary">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Technical form</th><th>Reference</th></tr></thead>
       <tbody>
-        <tr><td>public-key cryptography</td><td>a key pair: the public key verifies, the private key signs</td><td>each party self-generates its own keypair</td><td><a href="https://en.wikipedia.org/wiki/Public-key_cryptography" target="_blank" rel="noopener">Public-key cryptography ↗</a></td></tr>
-        <tr><td>digital signature</td><td>proof only the key owner could have produced it</td><td><code>Ed25519.sign(inner_hash)</code></td><td><a href="https://en.wikipedia.org/wiki/Digital_signature" target="_blank" rel="noopener">Digital signature ↗</a></td></tr>
-        <tr><td>Ed25519</td><td>the signature scheme used here</td><td>EdDSA over Curve25519</td><td><a href="https://en.wikipedia.org/wiki/EdDSA" target="_blank" rel="noopener">EdDSA ↗</a></td></tr>
-        <tr><td>hash function (SHA-256)</td><td>a one-way fingerprint of data</td><td>SHA-256, 256-bit digest</td><td><a href="https://en.wikipedia.org/wiki/SHA-2" target="_blank" rel="noopener">SHA-2 ↗</a></td></tr>
-        <tr><td>canonicalization</td><td>deterministic byte form before hashing/signing</td><td>sorted keys, omit undefined</td><td><a href="https://en.wikipedia.org/wiki/Canonicalization" target="_blank" rel="noopener">Canonicalization ↗</a></td></tr>
-        <tr><td>leaf</td><td>one signed log record</td><td><code>{ id, fields, signature }</code></td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree ↗</a></td></tr>
-        <tr><td>fields</td><td>the content that gets signed</td><td><code>actor, party_id, type, session_id, round_id, seq, payload, version, timestamp, input_refs?</code></td><td><a href="https://en.wikipedia.org/wiki/JSON" target="_blank" rel="noopener">JSON ↗</a></td></tr>
-        <tr><td>inner_hash</td><td>fingerprint of the content</td><td><code>SHA256(canonical(fields))</code></td><td><a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function" target="_blank" rel="noopener">Hash function ↗</a></td></tr>
-        <tr><td>leaf_hash</td><td>the record's Merkle-tree leaf</td><td><code>SHA256(0x00 ‖ canonical(fields + signature))</code></td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree ↗</a></td></tr>
-        <tr><td>actor / pubKeyRef</td><td>the signer's cryptographic id</td><td><code>"key:" + SHA256(publicKey)[:32]</code></td><td><a href="https://en.wikipedia.org/wiki/Public-key_cryptography" target="_blank" rel="noopener">Public-key cryptography ↗</a></td></tr>
-        <tr><td>party_id</td><td>the user (A / B / C) who created the record</td><td>stable UUID, inside signed <code>fields</code></td><td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier" target="_blank" rel="noopener">UUID ↗</a></td></tr>
-        <tr><td>Merkle tree</td><td>a tree of hashes committing many records by one root</td><td>internal node <code>SHA256(0x01 ‖ L ‖ R)</code>, odd promoted</td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree ↗</a></td></tr>
-        <tr><td>merkle_root</td><td>one fingerprint committing the whole round</td><td>the root of the Merkle tree</td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree ↗</a></td></tr>
-        <tr><td>off-chain</td><td>bulky data kept outside the chain (IPFS-style)</td><td>key <code>offchain:&lt;cid&gt;</code> (mock IPFS / Redis)</td><td><a href="https://en.wikipedia.org/wiki/InterPlanetary_File_System" target="_blank" rel="noopener">IPFS ↗</a></td></tr>
-        <tr><td>IPFS</td><td>content-addressed distributed storage</td><td>mocked here; addresses a bundle by its CID</td><td><a href="https://en.wikipedia.org/wiki/InterPlanetary_File_System" target="_blank" rel="noopener">IPFS ↗</a></td></tr>
-        <tr><td>CID (content id)</td><td>content address of the off-chain bundle</td><td><code>"cid:sha256:" + SHA256(canonical(leaves))[:46]</code></td><td><a href="https://en.wikipedia.org/wiki/Content-addressable_storage" target="_blank" rel="noopener">Content addressing ↗</a></td></tr>
-        <tr><td>on-chain</td><td>data committed to the public ledger</td><td>key <code>onchain:&lt;tx_hash&gt;</code></td><td><a href="https://en.wikipedia.org/wiki/Blockchain" target="_blank" rel="noopener">Blockchain ↗</a></td></tr>
-        <tr><td>blockchain</td><td>an append-only chain of hash-linked blocks</td><td>each anchor links to the previous one</td><td><a href="https://en.wikipedia.org/wiki/Blockchain" target="_blank" rel="noopener">Blockchain ↗</a></td></tr>
-        <tr><td>anchor / block</td><td>the on-chain seal of a round</td><td><code>{ merkle_root, cid, submitter_id, previous_tx_hash, tx_sig, tx_hash }</code></td><td><a href="https://en.wikipedia.org/wiki/Blockchain" target="_blank" rel="noopener">Blockchain ↗</a></td></tr>
-        <tr><td>tx_hash</td><td>the seal's own id (its transaction hash)</td><td><code>"tx:sha256:" + SHA256(canonical(header + tx_sig))[:46]</code></td><td><a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function" target="_blank" rel="noopener">Hash function ↗</a></td></tr>
-        <tr><td>previous_tx_hash</td><td>link to the prior seal, the hash chain</td><td>null on the first (genesis) block</td><td><a href="https://en.wikipedia.org/wiki/Hash_chain" target="_blank" rel="noopener">Hash chain ↗</a></td></tr>
-        <tr><td>wallet address</td><td>A's on-chain account that pays to seal</td><td><code>"0x" + SHA256(publicKey)[-40:]</code> (aggregator only)</td><td><a href="https://en.wikipedia.org/wiki/Cryptocurrency_wallet" target="_blank" rel="noopener">Crypto wallet ↗</a></td></tr>
-        <tr><td>idempotency_key</td><td>prevents a record being counted twice</td><td><code>"idem:" + SHA256(session ‖ round ‖ actor ‖ type ‖ seq)[:24]</code></td><td><a href="https://en.wikipedia.org/wiki/Idempotence" target="_blank" rel="noopener">Idempotence ↗</a></td></tr>
+        <tr><td>public-key cryptography</td><td>a key pair: the public key verifies, the private key signs</td><td>each party self-generates its own keypair</td><td><a href="https://en.wikipedia.org/wiki/Public-key_cryptography" target="_blank" rel="noopener">Public-key cryptography</a></td></tr>
+        <tr><td>digital signature</td><td>proof only the key owner could have produced it</td><td><code>Ed25519.sign(inner_hash)</code></td><td><a href="https://en.wikipedia.org/wiki/Digital_signature" target="_blank" rel="noopener">Digital signature</a></td></tr>
+        <tr><td>Ed25519</td><td>the signature scheme used here</td><td>EdDSA over Curve25519</td><td><a href="https://en.wikipedia.org/wiki/EdDSA" target="_blank" rel="noopener">EdDSA</a></td></tr>
+        <tr><td>hash function (SHA-256)</td><td>a one-way fingerprint of data</td><td>SHA-256, 256-bit digest</td><td><a href="https://en.wikipedia.org/wiki/SHA-2" target="_blank" rel="noopener">SHA-2</a></td></tr>
+        <tr><td>canonicalization</td><td>deterministic byte form before hashing/signing</td><td>sorted keys, omit undefined</td><td><a href="https://en.wikipedia.org/wiki/Canonicalization" target="_blank" rel="noopener">Canonicalization</a></td></tr>
+        <tr><td>leaf</td><td>one signed log record</td><td><code>{ id, fields, signature }</code></td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree</a></td></tr>
+        <tr><td>fields</td><td>the content that gets signed</td><td><code>actor, party_id, type, session_id, round_id, seq, payload, version, timestamp, input_refs?</code></td><td><a href="https://en.wikipedia.org/wiki/JSON" target="_blank" rel="noopener">JSON</a></td></tr>
+        <tr><td>inner_hash</td><td>fingerprint of the content</td><td><code>SHA256(canonical(fields))</code></td><td><a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function" target="_blank" rel="noopener">Hash function</a></td></tr>
+        <tr><td>leaf_hash</td><td>the record's Merkle-tree leaf</td><td><code>SHA256(0x00 ‖ canonical(fields + signature))</code></td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree</a></td></tr>
+        <tr><td>actor / pubKeyRef</td><td>the signer's cryptographic id</td><td><code>"key:" + SHA256(publicKey)[:32]</code></td><td><a href="https://en.wikipedia.org/wiki/Public-key_cryptography" target="_blank" rel="noopener">Public-key cryptography</a></td></tr>
+        <tr><td>party_id</td><td>the user (A / B / C) who created the record</td><td>stable UUID, inside signed <code>fields</code></td><td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier" target="_blank" rel="noopener">UUID</a></td></tr>
+        <tr><td>Merkle tree</td><td>a tree of hashes committing many records by one root</td><td>internal node <code>SHA256(0x01 ‖ L ‖ R)</code>, odd promoted</td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree</a></td></tr>
+        <tr><td>merkle_root</td><td>one fingerprint committing the whole round</td><td>the root of the Merkle tree</td><td><a href="https://en.wikipedia.org/wiki/Merkle_tree" target="_blank" rel="noopener">Merkle tree</a></td></tr>
+        <tr><td>off-chain</td><td>bulky data kept outside the chain (IPFS-style)</td><td>key <code>offchain:&lt;cid&gt;</code> (mock IPFS / Redis)</td><td><a href="https://en.wikipedia.org/wiki/InterPlanetary_File_System" target="_blank" rel="noopener">IPFS</a></td></tr>
+        <tr><td>IPFS</td><td>content-addressed distributed storage</td><td>mocked here; addresses a bundle by its CID</td><td><a href="https://en.wikipedia.org/wiki/InterPlanetary_File_System" target="_blank" rel="noopener">IPFS</a></td></tr>
+        <tr><td>CID (content id)</td><td>content address of the off-chain bundle</td><td><code>"cid:sha256:" + SHA256(canonical(leaves))[:46]</code></td><td><a href="https://en.wikipedia.org/wiki/Content-addressable_storage" target="_blank" rel="noopener">Content addressing</a></td></tr>
+        <tr><td>on-chain</td><td>data committed to the public ledger</td><td>key <code>onchain:&lt;tx_hash&gt;</code></td><td><a href="https://en.wikipedia.org/wiki/Blockchain" target="_blank" rel="noopener">Blockchain</a></td></tr>
+        <tr><td>blockchain</td><td>an append-only chain of hash-linked blocks</td><td>each anchor links to the previous one</td><td><a href="https://en.wikipedia.org/wiki/Blockchain" target="_blank" rel="noopener">Blockchain</a></td></tr>
+        <tr><td>anchor / block</td><td>the on-chain seal of a round</td><td><code>{ merkle_root, cid, submitter_id, previous_tx_hash, tx_sig, tx_hash }</code></td><td><a href="https://en.wikipedia.org/wiki/Blockchain" target="_blank" rel="noopener">Blockchain</a></td></tr>
+        <tr><td>tx_hash</td><td>the seal's own id (its transaction hash)</td><td><code>"tx:sha256:" + SHA256(canonical(header + tx_sig))[:46]</code></td><td><a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function" target="_blank" rel="noopener">Hash function</a></td></tr>
+        <tr><td>previous_tx_hash</td><td>link to the prior seal, the hash chain</td><td>null on the first (genesis) block</td><td><a href="https://en.wikipedia.org/wiki/Hash_chain" target="_blank" rel="noopener">Hash chain</a></td></tr>
+        <tr><td>wallet address</td><td>A's on-chain account that pays to seal</td><td><code>"0x" + SHA256(publicKey)[-40:]</code> (aggregator only)</td><td><a href="https://en.wikipedia.org/wiki/Cryptocurrency_wallet" target="_blank" rel="noopener">Crypto wallet</a></td></tr>
+        <tr><td>idempotency_key</td><td>prevents a record being counted twice</td><td><code>"idem:" + SHA256(session ‖ round ‖ actor ‖ type ‖ seq)[:24]</code></td><td><a href="https://en.wikipedia.org/wiki/Idempotence" target="_blank" rel="noopener">Idempotence</a></td></tr>
         <tr><td>session_id / round_id / seq</td><td>which training run, which round, ordering</td><td>in <code>fields</code></td><td>n/a</td></tr>
       </tbody>
     </table>

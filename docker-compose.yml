@@ -1,10 +1,31 @@
 services:
+  app:
+    # builds the image from the Dockerfile in this repo. To deploy with ONLY this compose
+    # file (no source on the server), push the built image to a registry and set `image:`
+    # to that registry path: `docker compose build && docker compose push`.
+    build: .
+    image: fl-psi-app:latest
+    container_name: fl-psi-app
+    init: true # proper PID 1 (reaps the A/B/C child processes, forwards signals)
+    ports:
+      # the ONLY published port. Open http://localhost:7400  (override: APP_PORT=...)
+      - "${APP_PORT:-7400}:8080"
+    environment:
+      NODE_ENV: production
+      NO_REPL: "1" # A/B/C run headless, driven by the web UI over HTTP
+      PRESENT_PORT: "8080" # internal port the proxy/static server listens on
+      REDIS_URL: redis://redis:6379 # reaches the redis service over the internal network
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: fl-psi-redis
-    ports:
-      # host:container — override the host port if 6379 is taken: REDIS_PORT=6381
-      - "${REDIS_PORT:-6379}:6379"
+    # wrapped: NOT published to the host. Only `app` reaches it over the internal compose network.
+    expose:
+      - "6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data
@@ -15,25 +36,5 @@ services:
       retries: 5
     restart: unless-stopped
 
-  redisinsight:
-    image: redis/redisinsight:latest
-    container_name: fl-psi-redisinsight
-    ports:
-      # web UI; override the host port if 5540 is taken: REDISINSIGHT_PORT=5541
-      - "${REDISINSIGHT_PORT:-5540}:5540"
-    environment:
-      # auto-add the fl-psi redis as a database on first start (same compose network,
-      # so it reaches redis by its service name on the internal port 6379)
-      RI_REDIS_HOST: redis
-      RI_REDIS_PORT: "6379"
-      RI_REDIS_ALIAS: fl-psi
-    depends_on:
-      redis:
-        condition: service_healthy
-    volumes:
-      - redisinsight-data:/data
-    restart: unless-stopped
-
 volumes:
   redis-data:
-  redisinsight-data:
